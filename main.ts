@@ -89,15 +89,16 @@ wellKnown.get("/webfinger", (ctx) => {
     return ctx.body(null, 403);
   }
 
+  const href = `http://${handle.domain}/ap/users/${handle.localPart}`;
   ctx.header("Cache-Control", "public, max-age=3600");
   return activityJson(ctx, {
     subject: `acct:${handle.localPart}@${handle.domain}`,
-    aliases: [],
+    aliases: [href],
     links: [
       {
         rel: "self",
         type: "application/activity+json",
-        href: `http://${handle.domain}/ap/users/${handle.localPart}`,
+        href,
       },
     ],
   });
