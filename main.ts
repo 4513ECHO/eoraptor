@@ -60,7 +60,7 @@ wellKnown.get("/nodeinfo", (ctx) => {
     links: [
       {
         rel: "http://nodeinfo.diaspora.software/ns/schema/2.0",
-        href: `http://${hostname}/nodeinfo/2.0`,
+        href: `http://${hostname}/.well-known/nodeinfo/2.0`,
       },
     ],
   });
