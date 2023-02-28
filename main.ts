@@ -78,13 +78,11 @@ wellKnown.get("/nodeinfo/2.0", (ctx) => {
 });
 wellKnown.get("/webfinger", (ctx) => {
   const { hostname } = new URL(ctx.req.url);
-  console.debug("debug", Deno.inspect(ctx.req.query(), { compact: true }));
-  const resource = ctx.req.query("resource");
+  const resource = decodeURIComponent(ctx.req.query("resource") ?? "");
   if (!resource || !resource.startsWith("acct:")) {
     return ctx.body(null, 400);
   }
   const handle = parseHandle(resource.substring("acct:".length));
-  console.debug("debug", Deno.inspect(handle, { compact: true }));
   if (!handle.domain) {
     return ctx.body(null, 400);
   } else if (handle.domain !== hostname) {
