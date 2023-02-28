@@ -89,18 +89,23 @@ wellKnown.get("/webfinger", (ctx) => {
     return ctx.body(null, 403);
   }
 
-  const href = `http://${handle.domain}/ap/users/${handle.localPart}`;
+  const selfHref = `http://${handle.domain}/ap/users/${handle.localPart}`;
+  const profilePageHref = `http://${handle.domain}/@${handle.localPart}`;
+  const self = {
+    rel: "self",
+    type: "application/activity+json",
+    href: selfHref,
+  };
+  const profilePage = {
+    rel: "http://webfinger.net/rel/profile-page",
+    type: "text/html",
+    href: profilePageHref,
+  };
   ctx.header("Cache-Control", "public, max-age=3600");
   return activityJson(ctx, {
     subject: `acct:${handle.localPart}@${handle.domain}`,
-    aliases: [href],
-    links: [
-      {
-        rel: "self",
-        type: "application/activity+json",
-        href,
-      },
-    ],
+    aliases: [selfHref, profilePageHref],
+    links: [self, profilePage],
   });
 });
 
@@ -131,6 +136,9 @@ app.get("/ap/users/:userName", async (ctx) => {
   const person = await getActorById(new URL(ctx.req.url));
   ctx.header("Content-Type", "application/activity+json");
   return activityJson(ctx, person);
+});
+app.get("/:root{@[\\w-.]+}", (ctx) => {
+  return ctx.html(`<h1>${ctx.req.param().root}</h1>`);
 });
 
 serve(app.fetch);
