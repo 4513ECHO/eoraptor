@@ -78,6 +78,7 @@ wellKnown.get("/nodeinfo/2.0", (ctx) => {
 });
 wellKnown.get("/webfinger", (ctx) => {
   const { hostname } = new URL(ctx.req.url);
+  console.log(ctx.req.url);
   const resource = ctx.req.query("resource");
   if (!resource || !resource.startsWith("acct:")) {
     return ctx.body(null, 400);
