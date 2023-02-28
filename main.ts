@@ -104,11 +104,12 @@ wellKnown.get("/webfinger", (ctx) => {
   });
 });
 
-function getActorById(id: URL, username: string): Promise<Actor | null> {
+function getActorById(id: URL): Promise<Actor | null> {
   const result = DATA.actors.filter((value) => value.id === id.toString());
   if (result.length === 0) {
     return Promise.resolve(null);
   }
+  const prop = JSON.parse(result[0].properties);
   return Promise.resolve({
     "@context": [
       "https://www.w3.org/ns/activitystreams",
@@ -118,8 +119,8 @@ function getActorById(id: URL, username: string): Promise<Actor | null> {
     id,
     indox: new URL(id.toString() + "/indox"),
     outbox: new URL(id.toString() + "/outbox"),
-    url: new URL(`https://${id.hostname}/@${username}`),
-    ...JSON.parse(result[0].properties),
+    url: new URL(`https://${id.hostname}/@${prop.preferredUsername}`),
+    ...prop,
   });
 }
 
@@ -127,10 +128,7 @@ const app = new Hono();
 app.use("*", logger());
 app.route("/.well-known", wellKnown);
 app.get("/ap/users/:userName", async (ctx) => {
-  const person = await getActorById(
-    new URL(ctx.req.url),
-    ctx.req.param().userName,
-  );
+  const person = await getActorById(new URL(ctx.req.url));
   ctx.header("Content-Type", "application/activity+json");
   return activityJson(ctx, person);
 });
