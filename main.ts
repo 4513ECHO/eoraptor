@@ -125,6 +125,8 @@ function getActorById(id: URL): Promise<Actor | null> {
     id,
     indox: new URL(id.toString() + "/indox"),
     outbox: new URL(id.toString() + "/outbox"),
+    following: new URL(id.toString() + "/following"),
+    followers: new URL(id.toString() + "/followers"),
     url: new URL(`https://${id.hostname}/@${prop.preferredUsername}`),
     ...prop,
   });
