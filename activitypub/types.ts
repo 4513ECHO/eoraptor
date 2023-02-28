@@ -100,9 +100,9 @@ export interface Actor extends ActivityObject {
 /** https://www.w3.org/TR/activitystreams-vocabulary/#dfn-person */
 export interface Person extends Actor {
   type: "Person";
-  publicKey: {
-    id: string;
-    owner: URL;
-    publicKeyPem: string;
-  };
+  // publicKey: {
+  //   id: string;
+  //   owner: URL;
+  //   publicKeyPem: string;
+  // };
 }
