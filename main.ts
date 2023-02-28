@@ -137,7 +137,9 @@ app.use("*", logger());
 app.route("/.well-known", wellKnown);
 app.get("/ap/users/:userName", async (ctx) => {
   const person = await getActorById(new URL(ctx.req.url));
-  ctx.header("Content-Type", "application/activity+json");
+  if (!person) {
+    return ctx.notFound();
+  }
   return activityJson(ctx, person);
 });
 app.get("/:root{@[\\w-.]+}", (ctx) => {
