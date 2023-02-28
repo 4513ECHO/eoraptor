@@ -31,7 +31,8 @@ function parseHandle(query: string): Handle {
 }
 
 function activityJson(ctx: Context, object: unknown): Response {
-  ctx.header("Content-Type", "application/activity+json; charset=UTF-8");
+  // ctx.header("Content-Type", "application/activity+json; charset=UTF-8");
+  ctx.header("Content-Type", "application/activity+json");
   return ctx.body(JSON.stringify(object));
 }
 
