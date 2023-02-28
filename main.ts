@@ -1,4 +1,5 @@
 import { type Context, Hono } from "https://deno.land/x/hono@v3.0.2/mod.ts";
+import { logger } from "https://deno.land/x/hono@v3.0.2/middleware.ts";
 import { stringify } from "https://deno.land/x/xml@2.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.178.0/http/server.ts";
 // import { zValidator } from "https://esm.sh/@hono/zod-validator@0.0.6";
@@ -103,7 +104,6 @@ wellKnown.get("/webfinger", (ctx) => {
 });
 
 function getActorById(id: URL, username: string): Promise<Actor | null> {
-  console.log(id.toString());
   const result = DATA.actors.filter((value) => value.id === id.toString());
   if (result.length === 0) {
     return Promise.resolve(null);
@@ -123,13 +123,13 @@ function getActorById(id: URL, username: string): Promise<Actor | null> {
 }
 
 const app = new Hono();
+app.use("*", logger());
 app.route("/.well-known", wellKnown);
 app.get("/ap/users/:userName", async (ctx) => {
   const person = await getActorById(
     new URL(ctx.req.url),
     ctx.req.param().userName,
   );
-  console.log(person);
   ctx.header("Content-Type", "application/activity+json");
   return activityJson(ctx, person);
 });
