@@ -16,12 +16,13 @@ export interface ActorsRow {
   properties: Record<string, any>;
 }
 
+const client = new Client(Deno.env.get("POSTGRES_URL"));
+await client.connect();
+
 const app = new Hono<Env>();
 app.use("*", logger());
 app.use("*", async (ctx, next) => {
-  const client = new Client(Deno.env.get("POSTGRES_URL"));
   ctx.set("db", client);
-  await client.connect();
   await next();
 });
 app.route("/.well-known", wellKnown);
