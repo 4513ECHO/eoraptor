@@ -31,7 +31,6 @@ function parseHandle(query: string): Handle {
 }
 
 function activityJson(ctx: Context, object: unknown): Response {
-  // ctx.header("Content-Type", "application/activity+json; charset=UTF-8");
   ctx.header("Content-Type", "application/activity+json");
   return ctx.body(JSON.stringify(object));
 }
@@ -103,11 +102,12 @@ wellKnown.get("/webfinger", (ctx) => {
     href: profilePageHref,
   };
   ctx.header("Cache-Control", "public, max-age=3600");
-  return activityJson(ctx, {
+  ctx.header("Content-Type", "application/jrd+json");
+  return ctx.body(JSON.stringify({
     subject: `acct:${handle.localPart}@${handle.domain}`,
     aliases: [selfHref, profilePageHref],
     links: [self, profilePage],
-  });
+  }));
 });
 
 function getActorById(id: URL): Promise<Actor | null> {
