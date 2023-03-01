@@ -1,4 +1,5 @@
 import { Hono, stringify } from "./deps.ts";
+import type { Env } from "./main.ts";
 
 export interface Handle {
   localPart: string;
@@ -22,9 +23,10 @@ export function parseHandle(query: string): Handle {
   }
 }
 
-export const wellKnown = new Hono();
+const app = new Hono<Env>();
+export default app;
 
-wellKnown.get("/host-meta", (ctx) => {
+app.get("/host-meta", (ctx) => {
   const { hostname } = new URL(ctx.req.url);
   ctx.header("Content-Type", "application/xrd+xml");
   return ctx.body(stringify({
@@ -40,7 +42,7 @@ wellKnown.get("/host-meta", (ctx) => {
   }));
 });
 
-wellKnown.get("/nodeinfo", (ctx) => {
+app.get("/nodeinfo", (ctx) => {
   const { hostname } = new URL(ctx.req.url);
   ctx.header("Cache-Control", "max-age=86400, public");
   return ctx.json({
@@ -53,7 +55,7 @@ wellKnown.get("/nodeinfo", (ctx) => {
   });
 });
 
-wellKnown.get("/nodeinfo/2.0", (ctx) => {
+app.get("/nodeinfo/2.0", (ctx) => {
   ctx.header("Cache-Control", "max-age=86400, public");
   return ctx.json({
     version: "2.0",
@@ -65,7 +67,8 @@ wellKnown.get("/nodeinfo/2.0", (ctx) => {
     metadata: {},
   });
 });
-wellKnown.get("/webfinger", (ctx) => {
+
+app.get("/webfinger", (ctx) => {
   const { hostname } = new URL(ctx.req.url);
   const resource = decodeURIComponent(ctx.req.query("resource") ?? "");
   if (!resource || !resource.startsWith("acct:")) {
