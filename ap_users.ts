@@ -1,6 +1,6 @@
 import { type Client, Context, Hono } from "./deps.ts";
 import type { ActorsRow, Env } from "./main.ts";
-import type { Actor } from "./activitypub/types.ts";
+import type { ActivityObject, Actor } from "./activitypub/types.ts";
 
 function activityJson(ctx: Context, object: unknown): Response {
   ctx.header("Content-Type", "application/activity+json");
@@ -44,15 +44,25 @@ async function getActorById(id: URL, db: Client): Promise<Actor | null> {
 const app = new Hono<Env>();
 export default app;
 
-app.get("/:userName", async (ctx) => {
-  const person = await getActorById(new URL(ctx.req.url), ctx.get("db"));
-  if (!person) {
+app.get("/:id", async (ctx) => {
+  const actor = await getActorById(new URL(ctx.req.url), ctx.get("db"));
+  if (!actor) {
     return ctx.notFound();
   }
-  return activityJson(ctx, person);
+  return activityJson(ctx, actor);
 });
 
-app.get("/:userName/inbox", (ctx) => ctx.body(null, 405));
-app.post("/:userName/inbox", (ctx) => {
+app.post("/:id/inbox", async (ctx) => {
+  if (
+    !ctx.req.header("Content-Type")?.startsWith("application/activity+json")
+  ) {
+    return ctx.body(null, 400);
+  }
+  const _activity = await ctx.req.json<ActivityObject>();
+
+  const actor = await getActorById(new URL(ctx.req.url), ctx.get("db"));
+  if (!actor) {
+    return ctx.notFound();
+  }
   return ctx.body(null, 500);
 });

@@ -28,8 +28,9 @@ app.use("*", async (ctx, next) => {
 app.route("/.well-known", wellKnown);
 app.route("/ap/users", apUsers);
 
-app.get("/:root{@[\\w-.]+}", (ctx) => {
-  return ctx.html(`<h1>${ctx.req.param().root}</h1>`);
+app.get("/:userName{@[\\w-.]+}", (ctx) => {
+  const user = ctx.req.param("userName").substring(1);
+  return ctx.html(`<h1>${user}</h1>`);
 });
 
 serve(app.fetch);
