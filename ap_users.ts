@@ -1,6 +1,6 @@
 import { type Client, Context, Hono } from "./deps.ts";
 import type { ActorsRow, Env } from "./main.ts";
-import type { ActivityObject, Actor } from "./activitypub/types.ts";
+import type { ActivityObject, Actor } from "./types/activitypub/mod.ts";
 
 function activityJson(ctx: Context, object: unknown): Response {
   ctx.header("Content-Type", "application/activity+json");
