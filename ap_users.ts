@@ -1,6 +1,7 @@
 import { type Client, Context, Hono } from "./deps.ts";
 import type { ActorsRow, Env } from "./main.ts";
-import type { ActivityObject, Actor } from "./types/activitypub/mod.ts";
+import type { Activity } from "./types/activitypub/activity.ts";
+import type { Actor } from "./types/activitypub/mod.ts";
 
 function activityJson(ctx: Context, object: unknown): Response {
   ctx.header("Content-Type", "application/activity+json");
@@ -41,6 +42,26 @@ async function getActorById(id: URL, db: Client): Promise<Actor | null> {
   });
 }
 
+function isActor(x: unknown): x is Actor {
+  if (!(x && typeof x === "object")) {
+    return false;
+  }
+  const obj = x as Record<string, unknown>;
+  return !!obj.type && typeof obj.type === "string" &&
+    !!obj.id && (typeof obj.id === "string" || obj.id instanceof URL) &&
+    !!obj.inbox && (typeof obj.inbox === "string" || obj.inbox instanceof URL);
+}
+
+async function fetchActor(activity: Activity): Promise<Actor> {
+  if (isActor(activity.actor)) {
+    return activity.actor;
+  }
+  const response = await fetch(activity.actor, {
+    headers: { Accept: "application/activity+json" },
+  });
+  return await response.json();
+}
+
 const app = new Hono<Env>();
 export default app;
 
@@ -58,11 +79,19 @@ app.post("/:id/inbox", async (ctx) => {
   ) {
     return ctx.body(null, 400);
   }
-  const _activity = await ctx.req.json<ActivityObject>();
-
+  const activity = await ctx.req.json<Activity>();
   const actor = await getActorById(new URL(ctx.req.url), ctx.get("db"));
   if (!actor) {
     return ctx.notFound();
+  } else if (actor.id !== (await fetchActor(activity)).id) {
+    return ctx.body(null, 400);
   }
-  return ctx.body(null, 500);
+  switch (activity.type) {
+    case "Follow":
+    case "Announce":
+    case "Like":
+      // Not supported
+      return ctx.body(null);
+  }
+  return ctx.body(null);
 });
