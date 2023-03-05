@@ -24,6 +24,11 @@ export async function getActorById(id: URL, db: Client): Promise<Actor | null> {
     return null;
   }
   const { name, preferredUsername, summary, icon } = result.properties;
+  const publicKey = result.pubkey === null ? null : {
+    id: `${result.id}#main-key`,
+    owner: result.id,
+    publicKeyPem: result.pubkey,
+  };
   return Promise.resolve({
     "@context": [
       "https://www.w3.org/ns/activitystreams",
@@ -36,7 +41,7 @@ export async function getActorById(id: URL, db: Client): Promise<Actor | null> {
     type: "Person",
     id,
     discoverable: true,
-    inbox: new URL(id.toString() + "/indox"),
+    inbox: new URL(id.toString() + "/inbox"),
     outbox: new URL(id.toString() + "/outbox"),
     following: new URL(id.toString() + "/following"),
     followers: new URL(id.toString() + "/followers"),
@@ -46,6 +51,7 @@ export async function getActorById(id: URL, db: Client): Promise<Actor | null> {
     preferredUsername,
     summary,
     icon,
+    publicKey,
   });
 }
 
