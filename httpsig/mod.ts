@@ -53,7 +53,6 @@ export async function sign(
 export async function verify(request: Request): Promise<boolean> {
   if (request.body !== null) {
     const [algo, digest] = request.headers.get("digest")?.split("=", 2) ?? [];
-    console.log(Deno.inspect({ from: "verify", algo, digest }));
     if (!algo || !digest) {
       return false;
     }
@@ -64,11 +63,6 @@ export async function verify(request: Request): Promise<boolean> {
     );
     // NOTE: trailing "=" characters are trimmed by `split()`
     if (digest !== base64.encode(bodyDigest).replace(/=+$/, "")) {
-      console.log(Deno.inspect({
-        from: "verify",
-        digest,
-        body: base64.encode(bodyDigest).replace(/=+$/, ""),
-      }));
       return false;
     }
   }

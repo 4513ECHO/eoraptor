@@ -5,10 +5,15 @@ import type { Activity } from "./types/activitypub/activity.ts";
 import * as actors from "./activitypub/actor.ts";
 import * as accept from "./activitypub/accept.ts";
 import * as follow from "./activitypub/follow.ts";
+import { parseHandle } from "./well_known.ts";
 
 function activityJson(ctx: Context, object: unknown): Response {
   ctx.header("Content-Type", "application/activity+json");
   return ctx.body(JSON.stringify(object));
+}
+
+function actorURL(domain: string, id: string): URL {
+  return new URL(`/ap/users/${id}`, "https://" + domain);
 }
 
 function getActorAsId(activity: Activity): URL {
@@ -40,34 +45,26 @@ app.get("/:id", async (ctx) => {
 });
 
 app.post("/:id/inbox", async (ctx) => {
-  console.log(Deno.inspect({
-    from: "inbox",
-    headers: ctx.req.header(),
-    body: await ctx.req.raw.clone().json(),
-  }));
   if (
     !ctx.req.header("Content-Type")?.startsWith("application/activity+json") ||
     !await verify(ctx.req.raw)
   ) {
-    console.log(Deno.inspect({
-      from: "inbox",
-      verify: await verify(ctx.req.raw),
-    }));
     return ctx.body(null, 400);
   }
+
   const [db, userKEK] = [ctx.get("db"), ctx.get("userKEK")];
-  const activity = await ctx.req.json<Activity>();
-  const actor = await actors.getActorById(new URL(ctx.req.url), db);
-  console.log(Deno.inspect({
-    from: "inbox",
-    activity,
-    actor,
-  }));
+  const domain = new URL(ctx.req.url).hostname;
+  const handle = parseHandle(ctx.req.param("id"));
+  if (handle.domain !== null && handle.domain !== domain) {
+    return ctx.body(null, 403);
+  }
+  const actorId = actorURL(domain, handle.localPart);
+  const actor = await actors.getActorById(actorId, db);
   if (!actor) {
     return ctx.notFound();
-  } else if (actor.id !== getActorAsId(activity)) {
-    return ctx.body(null, 400);
   }
+
+  const activity = await ctx.req.json<Activity>();
   switch (activity.type) {
     case "Follow": {
       const objectId = getObjectAsId(activity);
@@ -76,10 +73,7 @@ app.post("/:id/inbox", async (ctx) => {
       const receiver = await actors.getActorById(objectId, db);
       if (receiver !== null) {
         const originalActor = await actors.getAndCache(actorId, db);
-        const receiverAcct = [
-          receiver.preferredUsername,
-          new URL(ctx.req.url).hostname,
-        ].join("@");
+        const receiverAcct = `${receiver.preferredUsername}@${domain}`;
 
         await follow.addFollowing(db, originalActor, receiver, receiverAcct);
 
