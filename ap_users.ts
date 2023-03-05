@@ -12,10 +12,6 @@ function activityJson(ctx: Context, object: unknown): Response {
   return ctx.body(JSON.stringify(object));
 }
 
-function actorURL(domain: string, id: string): URL {
-  return new URL(`/ap/users/${id}`, "https://" + domain);
-}
-
 function getActorAsId(activity: Activity): URL {
   if (typeof activity.actor === "string" || activity.actor instanceof URL) {
     return new URL(activity.actor);
@@ -53,12 +49,14 @@ app.post("/:id/inbox", async (ctx) => {
   }
 
   const [db, userKEK] = [ctx.get("db"), ctx.get("userKEK")];
-  const domain = new URL(ctx.req.url).hostname;
+  const { hostname: domain, protocol } = new URL(ctx.req.url);
   const handle = parseHandle(ctx.req.param("id"));
   if (handle.domain !== null && handle.domain !== domain) {
     return ctx.body(null, 403);
   }
-  const actorId = actorURL(domain, handle.localPart);
+  const actorId = new URL(
+    `${protocol}//${domain}/ap/users/${handle.localPart}`,
+  );
   const actor = await actors.getActorById(actorId, db);
   if (!actor) {
     return ctx.notFound();

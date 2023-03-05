@@ -34,7 +34,7 @@ export async function getActorById(id: URL, db: Client): Promise<Actor | null> {
       "https://www.w3.org/ns/activitystreams",
       "https://w3id.org/security/v1",
       {
-        toot: "http://joinmastodon.org/ns#",
+        toot: "https://joinmastodon.org/ns#",
         discoverable: "toot:discoverable",
       },
     ],
@@ -45,7 +45,7 @@ export async function getActorById(id: URL, db: Client): Promise<Actor | null> {
     outbox: new URL(id.toString() + "/outbox"),
     following: new URL(id.toString() + "/following"),
     followers: new URL(id.toString() + "/followers"),
-    url: new URL(`https://${id.hostname}/@${preferredUsername}`),
+    url: new URL(`${id.protocol}//${id.hostname}/@${preferredUsername}`),
     published: new Date(result.created_at),
     name,
     preferredUsername,

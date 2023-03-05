@@ -27,29 +27,30 @@ const app = new Hono<Env>();
 export default app;
 
 app.get("/host-meta", (ctx) => {
-  const { hostname } = new URL(ctx.req.url);
+  const { hostname, protocol } = new URL(ctx.req.url);
   ctx.header("Content-Type", "application/xrd+xml");
   return ctx.body(stringify({
     xml: { "@version": "1.0", "@encoding": "UTF-8" },
     XRD: {
-      "@xmlns": "http://docs.oasis-open.org/ns/xri/xrd-1.0",
+      "@xmlns": "https://docs.oasis-open.org/ns/xri/xrd-1.0",
       Link: {
         "@rel": "lrdd",
         "@type": "application/xrd+xml",
-        "@template": `http://${hostname}/.well-known/webfinger?resource={uri}`,
+        "@template":
+          `${protocol}//${hostname}/.well-known/webfinger?resource={uri}`,
       },
     },
   }));
 });
 
 app.get("/nodeinfo", (ctx) => {
-  const { hostname } = new URL(ctx.req.url);
+  const { hostname, protocol } = new URL(ctx.req.url);
   ctx.header("Cache-Control", "max-age=86400, public");
   return ctx.json({
     links: [
       {
-        rel: "http://nodeinfo.diaspora.software/ns/schema/2.0",
-        href: `http://${hostname}/.well-known/nodeinfo/2.0`,
+        rel: "https://nodeinfo.diaspora.software/ns/schema/2.0",
+        href: `${protocol}//${hostname}/.well-known/nodeinfo/2.0`,
       },
     ],
   });
@@ -89,7 +90,7 @@ app.get("/webfinger", (ctx) => {
     href: selfHref,
   };
   const profilePage = {
-    rel: "http://webfinger.net/rel/profile-page",
+    rel: "https://webfinger.net/rel/profile-page",
     type: "text/html",
     href: profilePageHref,
   };
