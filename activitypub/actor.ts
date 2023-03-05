@@ -113,6 +113,7 @@ export async function deliverToActor(
   to: Actor,
   activity: Activity,
 ) {
+  console.debug(Deno.inspect({ _from: "deliverToActor", from, to, activity }));
   const request = await sign(
     new Request(to.inbox, {
       method: "POST",
