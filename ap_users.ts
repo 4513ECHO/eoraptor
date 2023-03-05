@@ -40,6 +40,11 @@ app.get("/:id", async (ctx) => {
 });
 
 app.post("/:id/inbox", async (ctx) => {
+  console.log(Deno.inspect({
+    from: "inbox",
+    headers: ctx.req.header(),
+    body: ctx.req.raw.clone().json(),
+  }));
   if (
     !ctx.req.header("Content-Type")?.startsWith("application/activity+json") ||
     !await verify(ctx.req.raw)
@@ -49,6 +54,11 @@ app.post("/:id/inbox", async (ctx) => {
   const [db, userKEK] = [ctx.get("db"), ctx.get("userKEK")];
   const activity = await ctx.req.json<Activity>();
   const actor = await actors.getActorById(new URL(ctx.req.url), db);
+  console.log(Deno.inspect({
+    from: "inbox",
+    activity,
+    actor,
+  }));
   if (!actor) {
     return ctx.notFound();
   } else if (actor.id !== getActorAsId(activity)) {
