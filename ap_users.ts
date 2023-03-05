@@ -43,12 +43,16 @@ app.post("/:id/inbox", async (ctx) => {
   console.log(Deno.inspect({
     from: "inbox",
     headers: ctx.req.header(),
-    body: ctx.req.raw.clone().json(),
+    body: await ctx.req.raw.clone().json(),
   }));
   if (
     !ctx.req.header("Content-Type")?.startsWith("application/activity+json") ||
     !await verify(ctx.req.raw)
   ) {
+    console.log(Deno.inspect({
+      from: "inbox",
+      verify: await verify(ctx.req.raw),
+    }));
     return ctx.body(null, 400);
   }
   const [db, userKEK] = [ctx.get("db"), ctx.get("userKEK")];
