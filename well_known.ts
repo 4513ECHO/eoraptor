@@ -69,7 +69,7 @@ app.get("/nodeinfo/2.0", (ctx) => {
 });
 
 app.get("/webfinger", (ctx) => {
-  const { hostname } = new URL(ctx.req.url);
+  const { hostname, protocol } = new URL(ctx.req.url);
   const resource = decodeURIComponent(ctx.req.query("resource") ?? "");
   if (!resource || !resource.startsWith("acct:")) {
     return ctx.body(null, 400);
@@ -81,8 +81,8 @@ app.get("/webfinger", (ctx) => {
     return ctx.body(null, 403);
   }
 
-  const selfHref = `http://${handle.domain}/ap/users/${handle.localPart}`;
-  const profilePageHref = `http://${handle.domain}/@${handle.localPart}`;
+  const selfHref = `${protocol}//${handle.domain}/ap/users/${handle.localPart}`;
+  const profilePageHref = `${protocol}//${handle.domain}/@${handle.localPart}`;
   const self = {
     rel: "self",
     type: "application/activity+json",
