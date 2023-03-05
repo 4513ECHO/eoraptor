@@ -1,21 +1,14 @@
 import { Client, Hono, load, logger, serve } from "./deps.ts";
-// import { client } from "./database.ts";
 import wellKnown from "./well_known.ts";
 import apUsers from "./ap_users.ts";
 
-await load({ export: true, restrictEnvAccessTo: ["POSTGRES_URL"] });
+await load({ export: true, restrictEnvAccessTo: ["POSTGRES_URL", "USER_KEK"] });
 
 export interface Env {
-  Variables: { db: Client };
-}
-export interface ActorsRow {
-  id: string;
-  type: string;
-  created_at: Date;
-  // deno-lint-ignore no-explicit-any
-  properties: Record<string, any>;
+  Variables: { db: Client; userKEK: string };
 }
 
+const userKEK = Deno.env.get("USER_KEK") ?? crypto.randomUUID();
 const client = new Client(Deno.env.get("POSTGRES_URL"));
 await client.connect();
 
@@ -23,6 +16,7 @@ const app = new Hono<Env>();
 app.use("*", logger());
 app.use("*", async (ctx, next) => {
   ctx.set("db", client);
+  ctx.set("userKEK", userKEK);
   await next();
 });
 app.route("/.well-known", wellKnown);

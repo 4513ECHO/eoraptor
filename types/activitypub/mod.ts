@@ -11,7 +11,7 @@ export type Context =
 export interface ActivityObject {
   "@context": Context;
   type: string;
-  id: URL;
+  id?: URL;
   attachment?: Array<ActivityObject | Link>;
   content?: string;
   context?: ActivityObject | Link;
@@ -52,13 +52,6 @@ export interface Link {
   preview?: Link | ActivityObject;
 }
 
-export interface Article extends ActivityObject {
-  type: "Article";
-  name: string;
-  content: string;
-  attributedTo?: Actor | URL | Array<Actor | URL>;
-}
-
 export interface Image extends ActivityObject {
   type: "Image";
   name: string | null;
@@ -67,6 +60,7 @@ export interface Image extends ActivityObject {
 
 /** https://www.w3.org/TR/activitystreams-vocabulary/#actor-types */
 export interface Actor extends ActivityObject {
+  id: URL;
   inbox: URL;
   outbox: URL;
   following: URL;

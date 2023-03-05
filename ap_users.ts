@@ -1,72 +1,38 @@
-import { type Client, Context, Hono } from "./deps.ts";
-import type { ActorsRow, Env } from "./main.ts";
+import { Context, Hono } from "./deps.ts";
+import { verify } from "./httpsig/mod.ts";
+import type { Env } from "./main.ts";
 import type { Activity } from "./types/activitypub/activity.ts";
-import type { Actor } from "./types/activitypub/mod.ts";
+import * as actors from "./activitypub/actor.ts";
+import * as accept from "./activitypub/accept.ts";
+import * as follow from "./activitypub/follow.ts";
 
 function activityJson(ctx: Context, object: unknown): Response {
   ctx.header("Content-Type", "application/activity+json");
   return ctx.body(JSON.stringify(object));
 }
 
-async function getActorById(id: URL, db: Client): Promise<Actor | null> {
-  const { rows } = await db.queryObject<ActorsRow>(
-    "SELECT * from actors WHERE id=$1",
-    [id.toString()],
-  );
-  if (rows.length === 0) {
-    return Promise.resolve(null);
+function getActorAsId(activity: Activity): URL {
+  if (typeof activity.actor === "string" || activity.actor instanceof URL) {
+    return new URL(activity.actor);
+  } else if (activity.actor.id) {
+    return new URL(activity.actor.id);
   }
-  const { name, preferredUsername, summary, icon } = rows[0].properties;
-  return Promise.resolve({
-    "@context": [
-      "https://www.w3.org/ns/activitystreams",
-      "https://w3id.org/security/v1",
-      {
-        toot: "http://joinmastodon.org/ns#",
-        discoverable: "toot:discoverable",
-      },
-    ],
-    type: "Person",
-    id,
-    discoverable: true,
-    inbox: new URL(id.toString() + "/indox"),
-    outbox: new URL(id.toString() + "/outbox"),
-    following: new URL(id.toString() + "/following"),
-    followers: new URL(id.toString() + "/followers"),
-    url: new URL(`https://${id.hostname}/@${preferredUsername}`),
-    published: new Date(rows[0].created_at),
-    name,
-    preferredUsername,
-    summary,
-    icon,
-  });
+  throw new Error(`unknown value: ${JSON.stringify(activity.actor)}`);
 }
-
-function isActor(x: unknown): x is Actor {
-  if (!(x && typeof x === "object")) {
-    return false;
+function getObjectAsId(activity: Activity): URL {
+  if (typeof activity.object === "string" || activity.object instanceof URL) {
+    return new URL(activity.object);
+  } else if (activity.object.id) {
+    return new URL(activity.object.id);
   }
-  const obj = x as Record<string, unknown>;
-  return !!obj.type && typeof obj.type === "string" &&
-    !!obj.id && (typeof obj.id === "string" || obj.id instanceof URL) &&
-    !!obj.inbox && (typeof obj.inbox === "string" || obj.inbox instanceof URL);
-}
-
-async function fetchActor(activity: Activity): Promise<Actor> {
-  if (isActor(activity.actor)) {
-    return activity.actor;
-  }
-  const response = await fetch(activity.actor, {
-    headers: { Accept: "application/activity+json" },
-  });
-  return await response.json();
+  throw new Error(`unknown value: ${JSON.stringify(activity.object)}`);
 }
 
 const app = new Hono<Env>();
 export default app;
 
 app.get("/:id", async (ctx) => {
-  const actor = await getActorById(new URL(ctx.req.url), ctx.get("db"));
+  const actor = await actors.getActorById(new URL(ctx.req.url), ctx.get("db"));
   if (!actor) {
     return ctx.notFound();
   }
@@ -75,23 +41,48 @@ app.get("/:id", async (ctx) => {
 
 app.post("/:id/inbox", async (ctx) => {
   if (
-    !ctx.req.header("Content-Type")?.startsWith("application/activity+json")
+    !ctx.req.header("Content-Type")?.startsWith("application/activity+json") ||
+    !await verify(ctx.req.raw)
   ) {
     return ctx.body(null, 400);
   }
+  const [db, userKEK] = [ctx.get("db"), ctx.get("userKEK")];
   const activity = await ctx.req.json<Activity>();
-  const actor = await getActorById(new URL(ctx.req.url), ctx.get("db"));
+  const actor = await actors.getActorById(new URL(ctx.req.url), db);
   if (!actor) {
     return ctx.notFound();
-  } else if (actor.id !== (await fetchActor(activity)).id) {
+  } else if (actor.id !== getActorAsId(activity)) {
     return ctx.body(null, 400);
   }
   switch (activity.type) {
-    case "Follow":
-    case "Announce":
-    case "Like":
+    case "Follow": {
+      const objectId = getObjectAsId(activity);
+      const actorId = getActorAsId(activity);
+
+      const receiver = await actors.getActorById(objectId, db);
+      if (receiver !== null) {
+        const originalActor = await actors.getAndCache(actorId, db);
+        const receiverAcct = [
+          receiver.preferredUsername,
+          new URL(ctx.req.url).hostname,
+        ].join("@");
+
+        await follow.addFollowing(db, originalActor, receiver, receiverAcct);
+
+        // Automatically send the Accept reply
+        await follow.acceptFollowing(db, originalActor, receiver);
+        await actors.deliverToActor(
+          await actors.getSigningKey(userKEK, db, receiver),
+          receiver,
+          originalActor,
+          accept.create(receiver, activity),
+        );
+      }
+      break;
+    }
+    default:
       // Not supported
-      return ctx.body(null);
+      return ctx.body(null, 400);
   }
-  return ctx.body(null);
+  return ctx.body(null, 202);
 });
