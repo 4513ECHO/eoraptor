@@ -52,21 +52,38 @@ app.get("/nodeinfo", (ctx) => {
         rel: "https://nodeinfo.diaspora.software/ns/schema/2.0",
         href: `${protocol}//${hostname}/.well-known/nodeinfo/2.0`,
       },
+      {
+        rel: "https://nodeinfo.diaspora.software/ns/schema/2.1",
+        href: `${protocol}//${hostname}/.well-known/nodeinfo/2.1`,
+      },
     ],
   });
 });
 
-app.get("/nodeinfo/2.0", (ctx) => {
+app.get("/nodeinfo/:version{[\\d.]+}", (ctx) => {
   ctx.header("Cache-Control", "max-age=86400, public");
-  return ctx.json({
-    version: "2.0",
-    software: { name: "eoraptor", version: "0.1.0" },
+  const nodeinfo = {
+    version: ctx.req.param("version"),
+    software: {
+      name: "eoraptor",
+      version: "0.1.0",
+      repository: undefined as string | undefined,
+    },
     protocols: ["activitypub"],
     services: { outbound: [], inbound: [] },
     usage: { users: {} },
     openRegistrations: false,
     metadata: {},
-  });
+  };
+  switch (ctx.req.param("version")) {
+    case "2.0":
+      return ctx.json(nodeinfo);
+    case "2.1":
+      nodeinfo.software.repository = "https://github.com/4513ECHO/eoraptor";
+      return ctx.json(nodeinfo);
+    default:
+      return ctx.body(null, 404);
+  }
 });
 
 app.get("/webfinger", (ctx) => {
