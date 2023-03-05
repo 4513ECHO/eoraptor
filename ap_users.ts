@@ -65,11 +65,12 @@ app.post("/:id/inbox", async (ctx) => {
   }
 
   const activity = await ctx.req.json<Activity>();
+  console.debug(Deno.inspect({ from: "inbox", type: activity.type }));
   switch (activity.type) {
     case "Follow": {
-      console.debug(Deno.inspect({ from: "inbox", type: "Follow" }));
       const objectId = getObjectAsId(activity);
       const actorId = getActorAsId(activity);
+      console.debug(Deno.inspect({ from: "inbox", objectId, actorId }));
 
       const receiver = await actors.getActorById(objectId, db);
       console.debug(Deno.inspect({ from: "inbox", receiver }));
