@@ -9,17 +9,17 @@ export async function sign(
   const url = new URL(request.url);
   const singedHeaders = ["date", "digest", "host"];
 
-  if (!request.headers.has("date")) {
-    request.headers.set("date", new Date().toUTCString());
+  if (!request.headers.has("Date")) {
+    request.headers.set("Date", new Date().toUTCString());
   }
 
-  if (!request.headers.has("host")) {
-    request.headers.set("host", url.host);
+  if (!request.headers.has("Host")) {
+    request.headers.set("Host", url.host);
   }
 
   if (request.body !== null) {
     const digest = await crypto.subtle.digest("SHA-256", request.clone().body!);
-    request.headers.set("digest", `SHA-256=${base64.encode(digest)}`);
+    request.headers.set("Digest", `SHA-256=${base64.encode(digest)}`);
   }
 
   const verifiableData = [
@@ -38,7 +38,7 @@ export async function sign(
     new TextEncoder().encode(verifiableData),
   );
   request.headers.set(
-    "signature",
+    "Signature",
     [
       ["keyId", key.keyId],
       ["algorithm", "rsa-sha256"],
@@ -52,7 +52,7 @@ export async function sign(
 
 export async function verify(request: Request): Promise<boolean> {
   if (request.body !== null) {
-    const [algo, digest] = request.headers.get("digest")?.split("=", 2) ?? [];
+    const [algo, digest] = request.headers.get("Digest")?.split("=", 2) ?? [];
     if (!algo || !digest) {
       return false;
     }
@@ -66,7 +66,7 @@ export async function verify(request: Request): Promise<boolean> {
       return false;
     }
   }
-  if (!request.headers.has("signature")) {
+  if (!request.headers.has("Signature")) {
     return false;
   }
   return true;
