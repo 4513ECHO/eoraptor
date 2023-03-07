@@ -97,6 +97,7 @@ export async function getSigningKey(
   db: Client,
   actor: Actor,
 ): Promise<CryptoKey> {
+  console.debug(Deno.inspect({ from: "getSigningKey", instanceKey, actor }));
   const { rows: [{ privkey, privkey_salt }] } = await db.queryObject<ActorsRow>(
     `SELECT privkey, privkey_salt FROM actors WHERE id=$1`,
     [actor.id.toString()],
@@ -104,6 +105,7 @@ export async function getSigningKey(
   if (!privkey || !privkey_salt) {
     throw new Error(`Actor doesn't have privkey: ${actor.id.toString()}`);
   }
+  console.debug(Deno.inspect({ from: "getSigningKey", privkey, privkey_salt }));
   return unwrapPrivateKey(instanceKey, privkey, privkey_salt);
 }
 

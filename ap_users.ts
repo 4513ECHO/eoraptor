@@ -68,18 +68,11 @@ app.post("/:id/inbox", async (ctx) => {
     case "Follow": {
       const objectId = getObjectAsId(activity);
       const actorId = getActorAsId(activity);
-      console.debug(Deno.inspect({ from: "inbox", objectId, actorId }));
 
       const receiver = await actors.getActorById(objectId, db);
-      console.debug(Deno.inspect({ from: "inbox", receiver }));
       if (receiver !== null) {
         const originalActor = await actors.getAndCache(actorId, db);
         const receiverAcct = `${receiver.preferredUsername}@${domain}`;
-        console.debug(Deno.inspect({
-          from: "inbox",
-          originalActor,
-          receiverAcct,
-        }));
 
         await follow.addFollowing(db, originalActor, receiver, receiverAcct);
 
