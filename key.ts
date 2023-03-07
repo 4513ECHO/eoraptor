@@ -91,7 +91,12 @@ export async function unwrapPrivateKey(
   wrappedPrivKey: Uint8Array,
   salt: Uint8Array,
 ): Promise<CryptoKey> {
-  console.debug(Deno.inspect({ from: "unwrapPrivateKey", at: "first" }));
+  console.debug(Deno.inspect({
+    from: "unwrapPrivateKey",
+    userKEK,
+    wrappedPrivKey,
+    salt,
+  }));
   const keyBytes = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: salt },
     await getKey(await getKeyMaterial(userKEK), salt),
