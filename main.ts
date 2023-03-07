@@ -1,4 +1,4 @@
-import { Client, Hono, load, logger, serve } from "./deps.ts";
+import { Client, Hono, load, logger, PostgresError, serve } from "./deps.ts";
 import wellKnown from "./well_known.ts";
 import apUsers from "./ap_users.ts";
 
@@ -10,7 +10,15 @@ export interface Env {
 
 const userKEK = Deno.env.get("USER_KEK") ?? crypto.randomUUID();
 const client = new Client(Deno.env.get("POSTGRES_URL"));
-await client.connect();
+try {
+  await client.connect();
+} catch (error: unknown) {
+  if (error instanceof PostgresError) {
+    console.error(error);
+  } else {
+    throw error;
+  }
+}
 
 const app = new Hono<Env>();
 app.use("*", logger());
