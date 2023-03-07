@@ -34,7 +34,7 @@ async function wrapCryptoKey(
   userKEK: string,
 ): Promise<{ wrappedPrivKey: ArrayBuffer; salt: Uint8Array }> {
   // get the key encryption key
-  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const salt = crypto.getRandomValues(new Uint8Array(12));
   const wrappedPrivKey = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv: salt },
     await getKey(await getKeyMaterial(userKEK), salt),
