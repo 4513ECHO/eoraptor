@@ -1,24 +1,19 @@
 import { base64 } from "./deps.ts";
 
-/**
-Get some key material to use as input to the deriveKey method.
-The key material is a password not stored in the DB.
-*/
-async function getKeyMaterial(password: string): Promise<CryptoKey> {
-  return await crypto.subtle.importKey(
+const pubKeyHeader = "-----BEGIN PUBLIC KEY-----";
+const pubKeyFooter = "-----END PUBLIC KEY-----";
+
+async function deriveKey(
+  password: string,
+  salt: ArrayBuffer,
+): Promise<CryptoKey> {
+  const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
     { name: "PBKDF2" },
     false,
     ["deriveBits", "deriveKey"],
   );
-}
-
-/** Given some key material and some random salt derive an AES-KW key using PBKDF2 */
-async function getKey(
-  keyMaterial: CryptoKey,
-  salt: ArrayBuffer,
-): Promise<CryptoKey> {
   return await crypto.subtle.deriveKey(
     { name: "PBKDF2", salt, iterations: 10000, hash: "SHA-256" },
     keyMaterial,
@@ -36,8 +31,8 @@ async function wrapCryptoKey(
   // get the key encryption key
   const salt = crypto.getRandomValues(new Uint8Array(12));
   const wrappedPrivKey = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: salt },
-    await getKey(await getKeyMaterial(userKEK), salt),
+    { name: "AES-GCM", iv: salt, tagLength: 128 },
+    await deriveKey(userKEK, salt),
     await crypto.subtle.exportKey("pkcs8", keyToWrap),
   );
 
@@ -60,22 +55,21 @@ export async function generateUserKey(
   );
 
   const { wrappedPrivKey, salt } = await wrapCryptoKey(privateKey, userKEK);
-  const pubKey = `-----BEGIN PUBLIC KEY-----\n${
-    base64.encode(await crypto.subtle.exportKey("spki", publicKey))
-  }\n-----END PUBLIC KEY-----`;
+  const pubKey = [
+    pubKeyHeader,
+    base64.encode(await crypto.subtle.exportKey("spki", publicKey)),
+    pubKeyFooter,
+  ].join("\n");
 
   return { wrappedPrivKey, salt, pubKey };
 }
 
 export async function importPublicKey(exportedKey: string): Promise<CryptoKey> {
   const trimmed = exportedKey.trim();
-  const pemHeader = "-----BEGIN PUBLIC KEY-----";
-  const pemFooter = "-----END PUBLIC KEY-----";
   const pemContents = trimmed.substring(
-    pemHeader.length,
-    trimmed.length - pemFooter.length,
+    pubKeyHeader.length,
+    trimmed.length - pubKeyFooter.length,
   );
-
   return await crypto.subtle.importKey(
     "spki",
     base64.decode(pemContents),
@@ -98,8 +92,8 @@ export async function unwrapPrivateKey(
     salt,
   }));
   const keyBytes = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: salt },
-    await getKey(await getKeyMaterial(userKEK), salt),
+    { name: "AES-GCM", iv: salt, tagLength: 128 },
+    await deriveKey(userKEK, salt),
     wrappedPrivKey,
   );
   console.debug(Deno.inspect({ from: "unwrapPrivateKey", keyBytes }));
