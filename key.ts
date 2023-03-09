@@ -85,18 +85,11 @@ export async function unwrapPrivateKey(
   wrappedPrivKey: Uint8Array,
   salt: Uint8Array,
 ): Promise<CryptoKey> {
-  console.debug(Deno.inspect({
-    from: "unwrapPrivateKey",
-    userKEK,
-    wrappedPrivKey,
-    salt,
-  }));
   const keyBytes = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: salt, tagLength: 128 },
     await deriveKey(userKEK, salt),
     wrappedPrivKey,
   );
-  console.debug(Deno.inspect({ from: "unwrapPrivateKey", keyBytes }));
   return await crypto.subtle.importKey(
     "pkcs8",
     keyBytes,
