@@ -33,7 +33,7 @@ export async function sign(
     .join("\n");
 
   const signature = await crypto.subtle.sign(
-    { name: "RSA-PSS", saltLength: 32 },
+    "RSASSA-PKCS1-v1_5",
     key.privateKey,
     new TextEncoder().encode(verifiableData),
   );
