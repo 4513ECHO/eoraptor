@@ -125,8 +125,7 @@ export async function deliverToActor(
       method: "POST",
       body: JSON.stringify(activity),
       headers: {
-        Accept:
-          'application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
+        "Content-Type": "application/activity+json",
         "User-Agent": "Eoraptor/0.1.0 (+https://github.com/4513ECHO/eoraptor)",
       },
     }),
