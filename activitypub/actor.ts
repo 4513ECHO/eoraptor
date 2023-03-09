@@ -137,9 +137,12 @@ export async function deliverToActor(
   );
   console.debug(Deno.inspect({ from: "deliverToActor", request }));
 
-  const res = await fetch(request);
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`delivery to ${to.inbox} returned ${res.status}: ${body}`);
+  const response = await fetch(request);
+  console.debug(Deno.inspect({ from: "deliverToActor", response }));
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `delivery to ${to.inbox} returned ${response.status}: ${body}`,
+    );
   }
 }
