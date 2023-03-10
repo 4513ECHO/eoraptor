@@ -96,6 +96,7 @@ app.post("/:id/inbox", async (ctx) => {
         case "Follow": {
           const objectId = getObjectAsId(activity);
           const actorId = getActorAsId(activity);
+          console.debug(Deno.inspect({ from: "inboxUndo", objectId, actorId }));
 
           const receiver = await actors.getActorById(objectId, db);
           if (receiver !== null) {
