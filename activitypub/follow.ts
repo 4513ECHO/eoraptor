@@ -1,5 +1,6 @@
 import type { Client } from "../deps.ts";
 import type { Actor } from "../types/activitypub/mod.ts";
+import type { ActorFollowingRow } from "../types/database.ts";
 
 enum State {
   PENDING = "pending",
@@ -34,4 +35,15 @@ export async function acceptFollowing(
      WHERE actor_id=$2 AND target_actor_id=$3 AND state=$4;`,
     [State.ACCEPTED, actor.id.toString(), target.id.toString(), State.PENDING],
   );
+}
+
+export async function getFollowers(
+  db: Client,
+  actor: Actor,
+): Promise<string[]> {
+  const { rows } = await db.queryObject<ActorFollowingRow>(
+    `SELECT actor_id FROM actor_following WHERE target_actor_id=$1 AND state=$2`,
+    [actor.id.toString(), State.ACCEPTED],
+  );
+  return rows.map((row) => row.actor_id);
 }

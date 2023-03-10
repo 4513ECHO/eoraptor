@@ -42,7 +42,7 @@ app.get("/:id", async (ctx) => {
 
 app.post("/:id/inbox", async (ctx) => {
   if (
-    !ctx.req.header("Content-Type")?.startsWith("application/activity+json") ||
+    !ctx.req.header("Content-Type")?.includes("application/activity+json") ||
     !await verify(ctx.req.raw)
   ) {
     return ctx.body(null, 400);
@@ -92,4 +92,33 @@ app.post("/:id/inbox", async (ctx) => {
       return ctx.body(null, 400);
   }
   return ctx.body(null, 202);
+});
+
+app.get("/:id/followers", async (ctx) => {
+  if (!ctx.req.header("Content-Type")?.includes("application/activity+json")) {
+    return ctx.body(null, 400);
+  }
+  const db = ctx.get("db");
+  const { hostname: domain, protocol } = new URL(ctx.req.url);
+  const handle = parseHandle(ctx.req.param("id"));
+  if (handle.domain !== null && handle.domain !== domain) {
+    return ctx.body(null, 403);
+  }
+  const actorId = new URL(
+    `${protocol}//${domain}/ap/users/${handle.localPart}`,
+  );
+  const actor = await actors.getActorById(actorId, db);
+  if (!actor) {
+    return ctx.notFound();
+  }
+
+  const followers = await follow.getFollowers(db, actor);
+
+  return activityJson(ctx, {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    id: actor.followers,
+    type: "OrderedCollection",
+    totalItems: followers.length,
+    orderedItems: followers,
+  });
 });
