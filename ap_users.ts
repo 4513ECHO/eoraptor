@@ -87,6 +87,36 @@ app.post("/:id/inbox", async (ctx) => {
       }
       break;
     }
+    case "Undo":
+      console.debug(Deno.inspect({ from: "inbox", object: activity.object }));
+      if (!("type" in activity.object)) {
+        return ctx.body(null, 400);
+      }
+      switch (activity.object.type) {
+        case "Follow": {
+          const objectId = getObjectAsId(activity);
+          const actorId = getActorAsId(activity);
+
+          const receiver = await actors.getActorById(objectId, db);
+          if (receiver !== null) {
+            const originalActor = await actors.getAndCache(actorId, db);
+
+            // Automatically send the Accept reply
+            await follow.removeFollowing(db, originalActor, receiver);
+            await actors.deliverToActor(
+              await actors.getSigningKey(userKEK, db, receiver),
+              receiver,
+              originalActor,
+              accept.create(receiver, activity),
+            );
+          }
+          break;
+        }
+        default:
+          // Not supported
+          return ctx.body(null, 400);
+      }
+      break;
     default:
       // Not supported
       return ctx.body(null, 400);

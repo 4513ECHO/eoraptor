@@ -47,3 +47,14 @@ export async function getFollowers(
   );
   return rows.map((row) => row.actor_id);
 }
+
+export async function removeFollowing(
+  db: Client,
+  actor: Actor,
+  target: Actor,
+): Promise<void> {
+  await db.queryObject(
+    `DELETE FROM actor_following WHERE actor_id=$1 AND target_actor_id=$2`,
+    [actor.id.toString(), target.id.toString()],
+  );
+}
