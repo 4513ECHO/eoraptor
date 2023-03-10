@@ -113,13 +113,6 @@ export async function deliverToActor(
   to: Actor,
   activity: Activity,
 ) {
-  console.debug(Deno.inspect({
-    _from: "deliverToActor",
-    signingKey,
-    from: from.id.toString(),
-    to: to.id.toString(),
-    activity,
-  }));
   const request = await sign(
     new Request(to.inbox, {
       method: "POST",
@@ -134,10 +127,8 @@ export async function deliverToActor(
       keyId: `${from.id}#main-key`,
     },
   );
-  console.debug(Deno.inspect({ from: "deliverToActor", request }));
 
   const response = await fetch(request);
-  console.debug(Deno.inspect({ from: "deliverToActor", response }));
   if (!response.ok) {
     const body = await response.text();
     throw new Error(

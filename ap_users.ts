@@ -101,7 +101,6 @@ app.post("/:id/inbox", async (ctx) => {
           if (receiver !== null) {
             const originalActor = await actors.getAndCache(actorId, db);
 
-            // Automatically send the Accept reply
             await follow.removeFollowing(db, originalActor, receiver);
             await actors.deliverToActor(
               await actors.getSigningKey(userKEK, db, receiver),
