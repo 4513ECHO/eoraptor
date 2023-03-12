@@ -6,13 +6,10 @@ import { Activity } from "../types/activitypub/activity.ts";
 import { sign } from "../httpsig/mod.ts";
 
 export function isActor(x: unknown): x is Actor {
-  if (x === null || typeof x !== "object") {
-    return false;
-  }
-  const obj = x as Record<string, unknown>;
-  return typeof obj.type === "string" &&
-    (typeof obj.id === "string" || obj.id instanceof URL) &&
-    (typeof obj.inbox === "string" || obj.inbox instanceof URL);
+  return typeof x === "object" && x !== null &&
+    "type" in x && typeof x.type === "string" &&
+    "id" in x && (typeof x.id === "string" || x.id instanceof URL) &&
+    "inbox" in x && (typeof x.inbox === "string" || x.inbox instanceof URL);
 }
 
 export async function getActorById(id: URL, db: Client): Promise<Actor | null> {

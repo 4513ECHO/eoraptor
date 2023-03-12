@@ -12,6 +12,12 @@ function activityJson(ctx: Context, object: unknown): Response {
   return ctx.body(JSON.stringify(object));
 }
 
+function isValidMediaType(header?: string): boolean {
+  return header !== undefined &&
+    (header.includes("application/activity+json") ||
+      (header.includes("application/ld+json") && header.includes("profile=")));
+}
+
 function getActorAsId(activity: Activity): URL {
   if (typeof activity.actor === "string" || activity.actor instanceof URL) {
     return new URL(activity.actor);
@@ -42,7 +48,7 @@ app.get("/:id", async (ctx) => {
 
 app.post("/:id/inbox", async (ctx) => {
   if (
-    !ctx.req.header("Content-Type")?.includes("application/activity+json") ||
+    !isValidMediaType(ctx.req.header("Content-Type")) ||
     !await verify(ctx.req.raw)
   ) {
     return ctx.body(null, 400);
@@ -125,7 +131,7 @@ app.post("/:id/inbox", async (ctx) => {
 });
 
 app.get("/:id/followers", async (ctx) => {
-  if (!ctx.req.header("Content-Type")?.includes("application/activity+json")) {
+  if (!isValidMediaType(ctx.req.header("Accept"))) {
     return ctx.body(null, 400);
   }
   const db = ctx.get("db");
