@@ -2,11 +2,6 @@ import type { Client } from "../deps.ts";
 import type { Actor } from "../types/activitypub/mod.ts";
 import type { ActorFollowingRow } from "../types/database.ts";
 
-enum State {
-  PENDING = "pending",
-  ACCEPTED = "accepted",
-}
-
 /** Add a pending following */
 export async function addFollowing(
   db: Client,
@@ -15,11 +10,11 @@ export async function addFollowing(
   targetAcct: string,
 ): Promise<string> {
   const { rows: [{ id }] } = await db.queryObject<ActorFollowingRow>(
-    `INSERT INTO actor_following (actor_id, target_actor_id, state, target_actor_acct)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO actor_following (actor_id, target_actor_id, target_actor_acct)
+     VALUES ($1, $2, $3)
      ON CONFLICT DO NOTHING
      RETURNING id;`,
-    [actor.id.toString(), target.id.toString(), State.PENDING, targetAcct],
+    [actor.id.toString(), target.id.toString(), targetAcct],
   );
   return id;
 }
@@ -31,9 +26,9 @@ export async function acceptFollowing(
   target: Actor,
 ): Promise<void> {
   await db.queryObject(
-    `UPDATE actor_following SET state=$1
-     WHERE actor_id=$2 AND target_actor_id=$3 AND state=$4;`,
-    [State.ACCEPTED, actor.id.toString(), target.id.toString(), State.PENDING],
+    `UPDATE actor_following SET is_accepted=true
+     WHERE actor_id=$1 AND target_actor_id=$2 AND is_accepted=false;`,
+    [actor.id.toString(), target.id.toString()],
   );
 }
 
@@ -42,8 +37,9 @@ export async function getFollowers(
   actor: Actor,
 ): Promise<string[]> {
   const { rows } = await db.queryObject<ActorFollowingRow>(
-    `SELECT actor_id FROM actor_following WHERE target_actor_id=$1 AND state=$2`,
-    [actor.id.toString(), State.ACCEPTED],
+    `SELECT actor_id FROM actor_following
+     WHERE target_actor_id=$1 AND is_accepted=true`,
+    [actor.id.toString()],
   );
   return rows.map((row) => row.actor_id);
 }

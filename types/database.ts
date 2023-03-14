@@ -21,6 +21,6 @@ export interface ActorFollowingRow {
   actor_id: string;
   target_actor_id: string;
   target_actor_acct: string;
-  state: "pending" | "accepted";
+  is_accepted: boolean;
   created_at: Date;
 }
