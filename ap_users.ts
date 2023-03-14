@@ -2,6 +2,7 @@ import { Context, Hono } from "./deps.ts";
 import { verify } from "./httpsig/mod.ts";
 import type { Env } from "./main.ts";
 import type { Activity } from "./types/activitypub/activity.ts";
+import type { ActivityObject } from "./types/activitypub/mod.ts";
 import * as actors from "./activitypub/actor.ts";
 import * as accept from "./activitypub/accept.ts";
 import * as follow from "./activitypub/follow.ts";
@@ -16,6 +17,18 @@ function isValidMediaType(header?: string): boolean {
   return header !== undefined &&
     (header.includes("application/activity+json") ||
       (header.includes("application/ld+json") && header.includes("profile=")));
+}
+
+function isActivity(x: unknown): x is Activity {
+  return typeof x === "object" && x !== null &&
+    "type" in x && typeof x.type === "string" &&
+    "id" in x && (typeof x.id === "string" || x.id instanceof URL) &&
+    "actor" in x &&
+    (actors.isActor(x.actor) || typeof x.actor === "string" ||
+      x.actor instanceof URL) &&
+    "object" in x &&
+    (typeof x.object === "object" || typeof x.object === "string" ||
+      x.object instanceof URL);
 }
 
 function getActorAsId(activity: Activity): URL {
@@ -33,6 +46,14 @@ function getObjectAsId(activity: Activity): URL {
     return new URL(activity.object.id);
   }
   throw new Error(`unknown value: ${JSON.stringify(activity.object)}`);
+}
+async function resolveObject(
+  obj: ActivityObject | URL,
+): Promise<ActivityObject> {
+  if (typeof obj === "string" || obj instanceof URL) {
+    return await fetch(obj).then((response) => response.json());
+  }
+  return obj;
 }
 
 const app = new Hono<Env>();
@@ -93,28 +114,22 @@ app.post("/:id/inbox", async (ctx) => {
       }
       break;
     }
-    case "Undo":
+    case "Undo": {
       console.debug(Deno.inspect({ from: "inbox", object: activity.object }));
-      if (!("type" in activity.object)) {
+      const object = await resolveObject(activity.object);
+      if (!isActivity(object)) {
         return ctx.body(null, 400);
       }
-      switch (activity.object.type) {
+      switch (object.type) {
         case "Follow": {
-          const objectId = getObjectAsId(activity);
-          const actorId = getActorAsId(activity);
+          const objectId = getObjectAsId(object);
+          const actorId = getActorAsId(object);
           console.debug(Deno.inspect({ from: "inboxUndo", objectId, actorId }));
 
           const receiver = await actors.getActorById(objectId, db);
           if (receiver !== null) {
             const originalActor = await actors.getAndCache(actorId, db);
-
             await follow.removeFollowing(db, originalActor, receiver);
-            await actors.deliverToActor(
-              await actors.getSigningKey(userKEK, db, receiver),
-              receiver,
-              originalActor,
-              accept.create(receiver, activity),
-            );
           }
           break;
         }
@@ -123,6 +138,7 @@ app.post("/:id/inbox", async (ctx) => {
           return ctx.body(null, 400);
       }
       break;
+    }
     default:
       // Not supported
       return ctx.body(null, 400);
