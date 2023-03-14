@@ -49,11 +49,6 @@ export async function removeFollowing(
   actor: Actor,
   target: Actor,
 ): Promise<void> {
-  console.debug(Deno.inspect({
-    from: "removeFollowing",
-    actor: actor.id.toString(),
-    target: target.id.toString(),
-  }));
   await db.queryObject(
     `DELETE FROM actor_following WHERE actor_id=$1 AND target_actor_id=$2`,
     [actor.id.toString(), target.id.toString()],
