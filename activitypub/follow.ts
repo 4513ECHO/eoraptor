@@ -14,12 +14,12 @@ export async function addFollowing(
   target: Actor,
   targetAcct: string,
 ): Promise<string> {
-  const id = crypto.randomUUID();
-  await db.queryObject(
-    `INSERT INTO actor_following (id, actor_id, target_actor_id, state, target_actor_acct)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT DO NOTHING;`,
-    [id, actor.id.toString(), target.id.toString(), State.PENDING, targetAcct],
+  const { rows: [{ id }] } = await db.queryObject<ActorFollowingRow>(
+    `INSERT INTO actor_following (actor_id, target_actor_id, state, target_actor_acct)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT DO NOTHING
+     RETURNING id;`,
+    [actor.id.toString(), target.id.toString(), State.PENDING, targetAcct],
   );
   return id;
 }
