@@ -1,5 +1,5 @@
 import { Hono, stringify } from "./deps.ts";
-import type { Env } from "./main.ts";
+import type { Env } from "../main.ts";
 
 export interface Handle {
   localPart: string;

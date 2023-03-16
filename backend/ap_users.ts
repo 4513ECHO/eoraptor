@@ -1,6 +1,6 @@
 import { Context, Hono } from "./deps.ts";
 import { verify } from "./httpsig/mod.ts";
-import type { Env } from "./main.ts";
+import type { Env } from "../main.ts";
 import type { Activity } from "./types/activitypub/activity.ts";
 import type { ActivityObject } from "./types/activitypub/mod.ts";
 import * as actors from "./activitypub/actor.ts";

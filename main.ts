@@ -1,6 +1,13 @@
-import { Client, Hono, load, logger, PostgresError, serve } from "./deps.ts";
-import wellKnown from "./well_known.ts";
-import apUsers from "./ap_users.ts";
+import {
+  Client,
+  Hono,
+  load,
+  logger,
+  PostgresError,
+  serve,
+} from "./backend/deps.ts";
+import wellKnown from "./backend/well_known.ts";
+import apUsers from "./backend/ap_users.ts";
 
 await load({ export: true, restrictEnvAccessTo: ["POSTGRES_URL", "USER_KEK"] });
 
