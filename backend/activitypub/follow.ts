@@ -12,7 +12,7 @@ export async function addFollowing(
 ): Promise<string> {
   const { rows: [{ id }] } = await db.queryObject<ActorFollowingRow>(
     `INSERT INTO actor_following (follower_id, followee_id, followee_acct)
-     VALUES ($1, $2, $3)
+     VALUES ((SELECT id FROM actor WHERE uri=$1), (SELECT id FROM actor WHERE uri=$2), $3)
      ON CONFLICT DO NOTHING
      RETURNING id;`,
     [follower.id.toString(), followee.id.toString(), followeeAcct],
@@ -39,7 +39,7 @@ export async function getFollowers(
 ): Promise<string[]> {
   const { rows } = await db.queryObject<ActorFollowingRow>(
     `SELECT follower_id FROM actor_following
-     WHERE followee=$1 AND is_accepted=true`,
+     WHERE followee_id=$1 AND is_accepted=true`,
     [followee.id.toString()],
   );
   return rows.map((row) => row.follower_id);
@@ -51,7 +51,7 @@ export async function removeFollowing(
   followee: Actor,
 ): Promise<void> {
   await db.queryObject(
-    `DELETE FROM actor_following WHERE follower_id=$1 AND followee=$2`,
+    `DELETE FROM actor_following WHERE follower_id=$1 AND followee_id=$2`,
     [follower.id.toString(), followee.id.toString()],
   );
 }
