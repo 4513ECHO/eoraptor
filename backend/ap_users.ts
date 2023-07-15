@@ -8,7 +8,7 @@ import * as accept from "./activitypub/accept.ts";
 import * as follow from "./activitypub/follow.ts";
 import { parseHandle } from "./well_known.ts";
 
-function activityJson(ctx: Context, object: unknown): Response {
+export function activityJson(ctx: Context, object: unknown): Response {
   ctx.header("Content-Type", "application/activity+json");
   return ctx.body(JSON.stringify(object));
 }
@@ -60,7 +60,7 @@ const app = new Hono<Env>();
 export default app;
 
 app.get("/:id", async (ctx) => {
-  const actor = await actors.getActorById(new URL(ctx.req.url), ctx.get("db"));
+  const actor = await actors.getActorByUri(new URL(ctx.req.url), ctx.get("db"));
   if (!actor) {
     return ctx.notFound();
   }
@@ -84,7 +84,7 @@ app.post("/:id/inbox", async (ctx) => {
   const actorId = new URL(
     `${protocol}//${domain}/ap/users/${handle.localPart}`,
   );
-  const actor = await actors.getActorById(actorId, db);
+  const actor = await actors.getActorByUri(actorId, db);
   if (!actor) {
     return ctx.notFound();
   }
@@ -96,7 +96,7 @@ app.post("/:id/inbox", async (ctx) => {
       const objectId = getObjectAsId(activity);
       const actorId = getActorAsId(activity);
 
-      const receiver = await actors.getActorById(objectId, db);
+      const receiver = await actors.getActorByUri(objectId, db);
       if (receiver !== null) {
         const originalActor = await actors.getAndCache(actorId, db);
         const receiverAcct = `${receiver.preferredUsername}@${domain}`;
@@ -125,7 +125,7 @@ app.post("/:id/inbox", async (ctx) => {
           const objectId = getObjectAsId(object);
           const actorId = getActorAsId(object);
 
-          const receiver = await actors.getActorById(objectId, db);
+          const receiver = await actors.getActorByUri(objectId, db);
           if (receiver !== null) {
             const originalActor = await actors.getAndCache(actorId, db);
             await follow.removeFollowing(db, originalActor, receiver);
@@ -158,7 +158,7 @@ app.get("/:id/followers", async (ctx) => {
   const actorId = new URL(
     `${protocol}//${domain}/ap/users/${handle.localPart}`,
   );
-  const actor = await actors.getActorById(actorId, db);
+  const actor = await actors.getActorByUri(actorId, db);
   if (!actor) {
     return ctx.notFound();
   }

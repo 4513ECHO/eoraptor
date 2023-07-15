@@ -12,18 +12,21 @@ export function isActor(x: unknown): x is Actor {
     "inbox" in x && (typeof x.inbox === "string" || x.inbox instanceof URL);
 }
 
-export async function getActorById(id: URL, db: Client): Promise<Actor | null> {
+export async function getActorByUri(
+  uri: URL,
+  db: Client,
+): Promise<Actor | null> {
   const { rows: [result] } = await db.queryObject<ActorsRow>(
-    "SELECT * from actors WHERE id=$1",
-    [id.toString()],
+    "SELECT * FROM actors WHERE uri=$1",
+    [uri.toString()],
   );
   if (!result) {
     return null;
   }
   const { name, preferredUsername, summary, icon } = result.properties;
   const publicKey = result.pubkey === null ? null : {
-    id: `${result.id}#main-key`,
-    owner: result.id,
+    id: `${result.uri}#main-key`,
+    owner: result.uri,
     publicKeyPem: result.pubkey,
   };
   return Promise.resolve({
@@ -36,13 +39,13 @@ export async function getActorById(id: URL, db: Client): Promise<Actor | null> {
       },
     ],
     type: "Person",
-    id,
+    id: uri,
     discoverable: true,
-    inbox: new URL(id.toString() + "/inbox"),
-    outbox: new URL(id.toString() + "/outbox"),
-    following: new URL(id.toString() + "/following"),
-    followers: new URL(id.toString() + "/followers"),
-    url: new URL(`${id.protocol}//${id.hostname}/@${preferredUsername}`),
+    inbox: new URL(uri.toString() + "/inbox"),
+    outbox: new URL(uri.toString() + "/outbox"),
+    following: new URL(uri.toString() + "/following"),
+    followers: new URL(uri.toString() + "/followers"),
+    url: new URL(`${uri.protocol}//${uri.hostname}/@${preferredUsername}`),
     published: new Date(result.created_at),
     name,
     preferredUsername,
@@ -73,7 +76,7 @@ export async function get(url: string | URL): Promise<Actor> {
 
 export async function getAndCache(url: URL, db: Client): Promise<Actor> {
   {
-    const actor = await getActorById(url, db);
+    const actor = await getActorByUri(url, db);
     if (actor !== null) {
       return actor;
     }
@@ -82,7 +85,7 @@ export async function getAndCache(url: URL, db: Client): Promise<Actor> {
   const actor = await get(url);
   const properties = actor;
   await db.queryObject(
-    `INSERT INTO actors (id, type, properties) VALUES ($1, $2, $3)`,
+    `INSERT INTO actors (uri, type, properties) VALUES ($1, $2, $3)`,
     [actor.id.toString(), actor.type, properties],
   );
 
@@ -95,7 +98,7 @@ export async function getSigningKey(
   actor: Actor,
 ): Promise<CryptoKey> {
   const { rows: [{ privkey, privkey_salt }] } = await db.queryObject<ActorsRow>(
-    `SELECT privkey, privkey_salt FROM actors WHERE id=$1`,
+    `SELECT privkey, privkey_salt FROM actors WHERE uri=$1`,
     [actor.id.toString()],
   );
   if (!privkey || !privkey_salt) {

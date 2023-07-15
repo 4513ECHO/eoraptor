@@ -2,6 +2,7 @@ import type { Image, Link } from "./activitypub/mod.ts";
 
 export interface ActorsRow {
   id: string;
+  uri: string;
   type: string;
   privkey: Uint8Array | null;
   privkey_salt: Uint8Array | null;
@@ -18,9 +19,9 @@ export interface ActorsRow {
 
 export interface ActorFollowingRow {
   id: string;
-  actor_id: string;
-  target_actor_id: string;
-  target_actor_acct: string;
+  follower_id: string;
+  followee_id: string;
+  followee_acct: string;
   is_accepted: boolean;
   created_at: Date;
 }
