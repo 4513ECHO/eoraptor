@@ -28,7 +28,8 @@ export async function acceptFollowing(
 ): Promise<void> {
   await db.queryObject(
     `UPDATE actor_following SET is_accepted=true
-     WHERE follower_id=$1 AND followee_id=$2 AND is_accepted=false;`,
+     WHERE follower_id=(SELECT id from actors WHERE uri=$1)
+       AND followee_id=(SELECT id from actors WHERE uri=$2) AND is_accepted=false;`,
     [follower.id.toString(), followee.id.toString()],
   );
 }
@@ -52,7 +53,8 @@ export async function removeFollowing(
 ): Promise<void> {
   await db.queryObject(
     `DELETE FROM actor_following
-     WHERE follower_id=(SELECT id FROM actors WHERE uri=$1) AND followee_id=(SELECT id FROM actors WHERE uri=$2);`,
+     WHERE follower_id=(SELECT id FROM actors WHERE uri=$1)
+       AND followee_id=(SELECT id FROM actors WHERE uri=$2);`,
     [follower.id.toString(), followee.id.toString()],
   );
 }
